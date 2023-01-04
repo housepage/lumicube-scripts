@@ -2,6 +2,8 @@ import math
 import requests
 import datetime
 from zoneinfo import ZoneInfo
+import sys
+import traceback
 
 leds = {}
 
@@ -87,10 +89,16 @@ def draw_two_digit_number(number, x_offset, y_offset):
     draw_number(math.trunc(number / 10), x_offset - 4, y_offset)
     draw_number(round(number % 10), x_offset, y_offset)
 
+cached_weather = None
+
 def current_weather():
     response = requests.get('https://api.open-meteo.com/v1/forecast?latitude=47.527281&longitude=-122.372886&current_weather=true&temperature_unit=fahrenheit&timezone=PST')
     json_response = response.json()
-    return json_response['current_weather']
+    if "current_weather" in json_response:
+        cached_weather = json_response["current_weather"]
+        return cached_weather
+    else:
+        return cached_weather
     
 def current_astronomy():
     response = requests.get('https://api.ipgeolocation.io/astronomy?apiKey=4f83e63f28aa4408b0bc5c6b4d0b3b25&lat=47.527281&long=-122.372886')
@@ -138,8 +146,8 @@ Code 	Description
 
 def draw_weather(current_weather, current_astronomy):
     weather_code = current_weather['weathercode']
+    weather_code = 2
     print("Weather Code:", weather_code)
-    weather_code = 0
     if weather_code == 0:
         forecast_to_screen("Clear")
         if sun_up(current_astronomy):
@@ -161,8 +169,32 @@ def draw_weather(current_weather, current_astronomy):
                     leds[(x,y)] = white
                     leds[(y,x)] = white
         else:
-            for i in range(0,15):
-                leds[(random.randint(0,16), random.randint(0,16))] = yellow
+           leds[(14,1)] = yellow
+           leds[(15,4)] = yellow
+           leds[(10,4)] = yellow
+           leds[(11,1)] = yellow
+           leds[(8,6)] = yellow
+           leds[(6,7)] = yellow
+           leds[(3,7)] = yellow
+           leds[(0,7)] = yellow
+           for star in range(0,4):
+               leds[(random.randint(0,7), random.randint(8,15))] = yellow
+    elif weather_code == 1:
+        for x in range(2,4):
+            leds[(x,7)] = grey
+            leds[(x + 4, 5)] = grey
+            leds[(x + 9, 6)] = grey
+            leds[(x + 6, 3)] = grey
+    elif weather_code == 2:
+        for x in range(2,5):
+            leds[(x - 1, 7)] = grey
+            leds[(x - 1, 6)] = grey
+            leds[(x + 3, 5)] = grey
+            leds[(x + 3, 4)] = grey
+            leds[(x + 9, 6)] = grey
+            leds[(x + 9, 5)] = grey
+            leds[(x + 7, 2)] = grey
+            leds[(x + 7, 1)] = grey
             
     elif weather_code == 3:
         #Overcast
@@ -174,17 +206,16 @@ def draw_weather(current_weather, current_astronomy):
 while True:
     try:
         leds = {}
-        current_weather = current_weather()
-        print(current_weather)
-        current_astronomy = current_astronomy()
-        draw_weather(current_weather, current_astronomy)
-        temperature = round(current_weather['temperature'])
-        print("Temperature: ", temperature)
+        weather = current_weather()
+        astronomy = current_astronomy()
+        draw_weather(weather, astronomy)
+        temperature = round(weather['temperature'])
         draw_two_digit_number(temperature, 6, 0)
         display.set_all(black)
         display.set_leds(leds)
     except Exception as e:
         print("Error: ", e)
+        traceback.print_exception(*sys.exc_info())
         pass
     time.sleep(300)
 
