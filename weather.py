@@ -1,5 +1,7 @@
 import math
 import requests
+import datetime
+from zoneinfo import ZoneInfo
 
 leds = {}
 
@@ -89,10 +91,32 @@ def current_weather():
     response = requests.get('https://api.open-meteo.com/v1/forecast?latitude=47.527281&longitude=-122.372886&current_weather=true&temperature_unit=fahrenheit&timezone=PST')
     json_response = response.json()
     return json_response['current_weather']
+    
+def current_astronomy():
+    response = requests.get('https://api.ipgeolocation.io/astronomy?apiKey=4f83e63f28aa4408b0bc5c6b4d0b3b25&lat=47.527281&long=-122.372886')
+    json_response = response.json()
+    return json_response
+    
+def current_time():
+    zone = ZoneInfo("America/Los_Angeles")
+    return datetime.datetime.now(zone).time()
+    
+def moon_up(astronomy):
+    now = current_time()
+    moonrise = datetime.time.fromisoformat(astronomy["moonrise"])
+    moonset = datetime.time.fromisoformat(astronomy["moonset"])
+    
+    return moonrise < now and now < moonset
+    
+def sun_up(astronomy):
+    now = current_time()
+    sunrise = datetime.time.fromisoformat(astronomy["sunrise"])
+    sunset = datetime.time.fromisoformat(astronomy["sunset"])
+    
+    return sunrise < now and now < sunset
 
 def forecast_to_screen(desc):
     screen.write_text(0, 14, "Forecast: " + desc, 1, white, black)
-
 
 '''
 WMO Weather interpretation codes (WW)
@@ -112,37 +136,55 @@ Code 	Description
 96, 99 * 	Thunderstorm with slight and heavy hail
 '''
 
-def draw_weather(current_weather):
+def draw_weather(current_weather, current_astronomy):
     weather_code = current_weather['weathercode']
     print("Weather Code:", weather_code)
+    weather_code = 0
     if weather_code == 0:
         forecast_to_screen("Clear")
-        for x in range(13, 16):
-            for y in range(5, 8):
-                leds[(x,y)] = yellow
-        for x in range(14, 16):
-            leds[(x,4)] = orange
-        for y in range(6, 8):
-            leds[(12, y)] = orange
-        leds[(13,5)] = orange
-        for offset in range(1,3):
-            leds[(13 - offset, 5 - offset)] = orange
-            leds[(12 - offset, 6)] = orange
-            leds[(15, 4 - offset)] = orange
+        if sun_up(current_astronomy):
+            for x in range(13, 16):
+                for y in range(5, 8):
+                    leds[(x,y)] = yellow
+            for x in range(14, 16):
+                leds[(x,4)] = orange
+            for y in range(6, 8):
+                leds[(12, y)] = orange
+            leds[(13,5)] = orange
+            for offset in range(1,3):
+                leds[(13 - offset, 5 - offset)] = orange
+                leds[(12 - offset, 6)] = orange
+                leds[(15, 4 - offset)] = orange
+        elif moon_up(current_astronomy):
+            for x in range(14,16):
+                for y in range(6,8):
+                    leds[(x,y)] = white
+                    leds[(y,x)] = white
+        else:
+            for i in range(0,15):
+                leds[(random.randint(0,16), random.randint(0,16))] = yellow
+            
     elif weather_code == 3:
         #Overcast
         forecast_to_screen("Overcast")
-        display.set_all(grey)
+        for x in range(0,16):
+            for y in range(0, 16):
+                leds[(x,y)] = grey
 
 while True:
     try:
-        display.set_all(black)
         leds = {}
         current_weather = current_weather()
-        draw_weather(current_weather)
-        draw_two_digit_number(current_weather['temperature'], 6, 0)
+        print(current_weather)
+        current_astronomy = current_astronomy()
+        draw_weather(current_weather, current_astronomy)
+        temperature = round(current_weather['temperature'])
+        print("Temperature: ", temperature)
+        draw_two_digit_number(temperature, 6, 0)
+        display.set_all(black)
         display.set_leds(leds)
-    except:
+    except Exception as e:
+        print("Error: ", e)
         pass
     time.sleep(300)
 
