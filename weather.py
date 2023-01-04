@@ -124,7 +124,7 @@ def sun_up(astronomy):
     return sunrise < now and now < sunset
 
 def forecast_to_screen(desc):
-    screen.write_text(0, 14, "Forecast: " + desc, 1, white, black)
+    screen.write_text(0, 16, "Forecast: " + desc, 1, white, black)
 
 '''
 WMO Weather interpretation codes (WW)
@@ -146,7 +146,6 @@ Code 	Description
 
 def draw_weather(current_weather, current_astronomy):
     weather_code = current_weather['weathercode']
-    weather_code = 2
     print("Weather Code:", weather_code)
     if weather_code == 0:
         forecast_to_screen("Clear")
@@ -180,12 +179,14 @@ def draw_weather(current_weather, current_astronomy):
            for star in range(0,4):
                leds[(random.randint(0,7), random.randint(8,15))] = yellow
     elif weather_code == 1:
+        forecast_to_screen("Mainly Clear")
         for x in range(2,4):
             leds[(x,7)] = grey
             leds[(x + 4, 5)] = grey
             leds[(x + 9, 6)] = grey
             leds[(x + 6, 3)] = grey
     elif weather_code == 2:
+        forecast_to_screen("Partly Cloudly")
         for x in range(2,5):
             leds[(x - 2, 7)] = grey
             leds[(x - 2, 6)] = grey
@@ -203,8 +204,13 @@ def draw_weather(current_weather, current_astronomy):
             for y in range(0, 16):
                 leds[(x,y)] = grey
 
+def clear_screen():
+    screen.draw_rectangle(0, 0, 319, 239, black)
+
 while True:
     try:
+        clear_screen()
+        screen.write_text(0,0, "Viz: Weather", 1, white, black)
         leds = {}
         weather = current_weather()
         astronomy = current_astronomy()
