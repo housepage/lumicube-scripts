@@ -187,8 +187,8 @@ def draw_weather(current_weather, current_astronomy):
             leds[(x + 6, 3)] = grey
     elif weather_code == 2:
         for x in range(2,5):
-            leds[(x - 1, 7)] = grey
-            leds[(x - 1, 6)] = grey
+            leds[(x - 2, 7)] = grey
+            leds[(x - 2, 6)] = grey
             leds[(x + 3, 5)] = grey
             leds[(x + 3, 4)] = grey
             leds[(x + 9, 6)] = grey
