@@ -1,11 +1,24 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..","AbstractFoundry","Daemon","Scripts")))
+
+import threading
 import math
 import requests
 import datetime
 from zoneinfo import ZoneInfo
-import sys
 import traceback
+import digitalrain
 
-leds = {}
+def LedDictionary():
+    leds = {}
+    for x in range(0,16):
+        for y in range(0,16):
+            if x < 8 or (x > 7 and y < 8):
+                leds[x,y] = 0
+    return leds
+
+leds = LedDictionary()
 
 display.set_all(black)
 
@@ -144,8 +157,12 @@ Code 	Description
 96, 99 * 	Thunderstorm with slight and heavy hail
 '''
 
+def rain(name):
+    digitalrain.digitalrain(leds, 300, 0.1)
+
 def draw_weather(current_weather, current_astronomy):
     weather_code = current_weather['weathercode']
+    weather_code = 51
     print("Weather Code:", weather_code)
     if weather_code == 0:
         forecast_to_screen("Clear")
@@ -203,6 +220,16 @@ def draw_weather(current_weather, current_astronomy):
         for x in range(0,16):
             for y in range(0, 16):
                 leds[(x,y)] = grey
+    elif weather_code == 51:
+        print("Before starting the rain")
+        # Rain
+        # https://github.com/RaspiColas/lumicube/blob/main/digitalrain.py
+        x = threading.Thread(target=rain, args=(1,))
+        x.start()
+        print("After starting the rain")
+        
+    elif weather_code == None:
+        pass
 
 def clear_screen():
     screen.draw_rectangle(0, 0, 319, 239, black)
@@ -215,10 +242,14 @@ while True:
         weather = current_weather()
         astronomy = current_astronomy()
         draw_weather(weather, astronomy)
+        print("After drawing the weather")
         temperature = round(weather['temperature'])
-        draw_two_digit_number(temperature, 6, 0)
-        display.set_all(black)
-        display.set_leds(leds)
+        
+        for refresh in range(1,3000): 
+            print(refresh)
+            draw_two_digit_number(temperature, 6, 0)
+            display.set_leds(leds)
+            time.sleep(0.1)
     except Exception as e:
         print("Error: ", e)
         traceback.print_exception(*sys.exc_info())

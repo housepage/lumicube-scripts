@@ -87,7 +87,6 @@ def play_random_soundscape(name):
         sound = random.choice(os.listdir(sound_dir))
         screen.write_text(0,16, "Sound: " + str(sound), 1, white, black)
         full_path = sound_dir + sound
-        print(full_path)
         speaker.play(full_path)
         time.sleep(random.randrange(30,120))
         
