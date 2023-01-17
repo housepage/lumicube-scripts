@@ -2,6 +2,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..","AbstractFoundry","Daemon","Scripts")))
 
+from utils import *
+
 import threading
 import math
 import requests
@@ -10,97 +12,9 @@ from zoneinfo import ZoneInfo
 import traceback
 import digitalrain
 
-def LedDictionary():
-    leds = {}
-    for x in range(0,16):
-        for y in range(0,16):
-            if x < 8 or (x > 7 and y < 8):
-                leds[x,y] = 0
-    return leds
-
 leds = LedDictionary()
 
 display.set_all(black)
-
-def safe_set(x, y, color):
-    if x > -1 and x < 16 and y > -1 and y < 16:
-        leds[(x,y)] = color
-
-def draw_number(number, x_offset, y_offset):
-    if number == 1:
-        for y in range(0,5):
-            safe_set(x_offset - 1, y_offset + y, white)
-        safe_set(x_offset - 2, y_offset + 4, white)
-        safe_set(x_offset - 2, y_offset, white)
-        safe_set(x_offset, y_offset, white)
-    elif number == 2:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset + 2, white)
-            safe_set(x_offset - x, y_offset, white)
-        safe_set(x_offset, y_offset + 3, white)
-        safe_set(x_offset - 2, y_offset + 1, white)
-    elif number == 3:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset, white)
-        for y in range(1,4):
-            safe_set(x_offset, y_offset + y, white)
-        safe_set(x_offset - 1, y_offset + 2, white)
-    elif number == 4:
-        for y in range(0,5):
-            safe_set(x_offset, y_offset + y, white)
-        for y in range(2,5):
-            safe_set(x_offset - 2, y_offset + y, white)
-        safe_set(x_offset - 1, y_offset + 2, white)
-    elif number == 5:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset + 2, white)
-            safe_set(x_offset - x, y_offset, white)
-        safe_set(x_offset, y_offset + 1, white)
-        safe_set(x_offset - 2, y_offset + 3, white)
-    elif number == 6:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset + 2, white)
-            safe_set(x_offset - x, y_offset, white)
-        safe_set(x_offset, y_offset + 1, white)
-        safe_set(x_offset - 2, y_offset + 1, white)
-        safe_set(x_offset - 2, y_offset + 3, white)
-    elif number == 7:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-        for y in range(0,5):
-            safe_set(x_offset, y_offset + y, white)
-    elif number == 8:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset + 2, white)
-            safe_set(x_offset - x, y_offset, white)
-        safe_set(x_offset - 2, y_offset + 1, white)
-        safe_set(x_offset, y_offset + 1, white)
-        safe_set(x_offset - 2, y_offset + 3, white)
-        safe_set(x_offset, y_offset + 3, white)
-    elif number == 9:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset + 2, white)
-        safe_set(x_offset - 2, y_offset + 3, white)
-        safe_set(x_offset, y_offset + 3, white)
-        for y in range(0,2):
-            safe_set(x_offset, y_offset + y, white)
-    elif number == 0:
-        for x in range(0,3):
-            safe_set(x_offset - x, y_offset + 4, white)
-            safe_set(x_offset - x, y_offset, white)
-        for y in range(0,5):
-            safe_set(x_offset, y_offset + y, white)
-            safe_set(x_offset - 2, y_offset + y, white)
-
-def draw_two_digit_number(number, x_offset, y_offset):
-    draw_number(math.trunc(number / 10), x_offset - 4, y_offset)
-    draw_number(round(number % 10), x_offset, y_offset)
 
 cached_weather = None
 
@@ -118,10 +32,6 @@ def current_astronomy():
     json_response = response.json()
     return json_response
     
-def current_time():
-    zone = ZoneInfo("America/Los_Angeles")
-    return datetime.datetime.now(zone).time()
-    
 def moon_up(astronomy):
     now = current_time()
     moonrise = datetime.time.fromisoformat(astronomy["moonrise"])
@@ -138,6 +48,18 @@ def sun_up(astronomy):
 
 def forecast_to_screen(desc):
     screen.write_text(0, 16, "Forecast: " + desc, 1, white, black)
+    
+from enum import Enum
+
+# class syntax
+
+class Intensity(Enum):
+    LIGHT = 1
+    
+def rain(intensity = Intensity.LIGHT):
+    num_drops = intensity * 10
+    drops = []
+
 
 '''
 WMO Weather interpretation codes (WW)
@@ -158,11 +80,10 @@ Code 	Description
 '''
 
 def rain(name):
-    digitalrain.digitalrain(leds, 300, 0.1)
+    digitalrain.digitalrain(leds, 300, 1)
 
 def draw_weather(current_weather, current_astronomy):
     weather_code = current_weather['weathercode']
-    weather_code = 51
     print("Weather Code:", weather_code)
     if weather_code == 0:
         forecast_to_screen("Clear")
@@ -224,8 +145,8 @@ def draw_weather(current_weather, current_astronomy):
         print("Before starting the rain")
         # Rain
         # https://github.com/RaspiColas/lumicube/blob/main/digitalrain.py
-        x = threading.Thread(target=rain, args=(1,))
-        x.start()
+        #x = threading.Thread(target=rain, args=(1,))
+        #x.start()
         print("After starting the rain")
         
     elif weather_code == None:
@@ -233,6 +154,8 @@ def draw_weather(current_weather, current_astronomy):
 
 def clear_screen():
     screen.draw_rectangle(0, 0, 319, 239, black)
+    
+    
 
 while True:
     try:
@@ -242,14 +165,10 @@ while True:
         weather = current_weather()
         astronomy = current_astronomy()
         draw_weather(weather, astronomy)
-        print("After drawing the weather")
         temperature = round(weather['temperature'])
         
-        for refresh in range(1,3000): 
-            print(refresh)
-            draw_two_digit_number(temperature, 6, 0)
-            display.set_leds(leds)
-            time.sleep(0.1)
+        draw_two_digit_number(leds, temperature, 6, 0)
+        display.set_leds(leds)
     except Exception as e:
         print("Error: ", e)
         traceback.print_exception(*sys.exc_info())
